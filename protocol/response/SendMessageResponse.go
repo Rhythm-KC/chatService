@@ -11,12 +11,13 @@ import (
 
 type SendMessageResponse struct{
     status int
+    header uint8
 }
 
 func (m *SendMessageResponse) Marshal()([]byte, *pe.ProtocolError){
     var buf bytes.Buffer
 
-    binary.Write(&buf, binary.BigEndian, messagecode.MessageResponseIdentifier)
+    binary.Write(&buf, binary.BigEndian, m.header)
     binary.Write(&buf, binary.BigEndian, m.status)
     return buf.Bytes(), nil
 }
@@ -34,7 +35,12 @@ func (m *SendMessageResponse) Unmarshal(dataReceived []byte) *pe.ProtocolError{
                                    header,
                                    "SendMessageResponse") 
     }
-
+    
+    m.header = header
     m.status = int(dataReceived[1])
     return nil
+}
+
+func (m *SendMessageResponse) GetHeader() uint8{
+    return m.header
 }

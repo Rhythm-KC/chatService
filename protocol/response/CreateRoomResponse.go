@@ -4,22 +4,35 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	"github.com/rhythm/chatservice/protocol/util"
 	pe "github.com/rhythm/chatservice/protocol/error"
 	"github.com/rhythm/chatservice/protocol/messagecode"
+	"github.com/rhythm/chatservice/protocol/util"
 )
 
 type CreateRoomResponse struct{
 
     senderId uint16
     roomId uint16
+    header uint8
     roomName string
+}
+
+func NewCreateRoomResponse(senderid uint16, 
+                           roomid uint16, 
+                           roomName string) *CreateRoomResponse{
+
+    
+    return &CreateRoomResponse{senderId: senderid, 
+                               roomId: roomid,
+                               header: messagecode.CreateRoomResponseIdentifier,
+                               roomName: roomName,}
+    
 }
 
 func (m *CreateRoomResponse) Marshal() ([]byte, *pe.ProtocolError){
 
     var buf bytes.Buffer
-    binary.Write(&buf, binary.BigEndian, messagecode.CreateRoomResponseIdentifier)
+    binary.Write(&buf, binary.BigEndian, m.header)
     binary.Write(&buf, binary.BigEndian, m.senderId)
     binary.Write(&buf, binary.BigEndian, m.roomId)
     roomNameLen := len(m.roomName)
@@ -39,6 +52,7 @@ func (m *CreateRoomResponse) Unmarshal(dataReceived []byte) *pe.ProtocolError{
      if err != nil{
          return err
      }
+     m.header = header
      l := 0
      m.senderId = binary.BigEndian.Uint16(body[l:l+sender_id_in_bytes])
      l+= sender_id_in_bytes
@@ -52,6 +66,10 @@ func (m *CreateRoomResponse) Unmarshal(dataReceived []byte) *pe.ProtocolError{
      m.roomName = string(body[l:l+msgLen])
 
     return nil
+}
+
+func (m *CreateRoomResponse) GetHeader() uint8{
+    return m.header
 }
 
 

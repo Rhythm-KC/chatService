@@ -12,17 +12,20 @@ import (
 type JoinRoomRequest struct{
     senderId uint16
     roomId uint16
+    header uint8
 }
 
 func NewJoinRoomRequest(senderId uint16, roomId uint16) *JoinRoomRequest{
-    return &JoinRoomRequest{senderId: senderId, roomId: roomId}
+    return &JoinRoomRequest{senderId: senderId, 
+                            roomId: roomId,
+                            header: messagecode.JoinRoomRequestIdentifier}
 }
 
 func (m *JoinRoomRequest) Marshal() ([]byte, *pe.ProtocolError){
 
     var buf bytes.Buffer
 
-    binary.Write(&buf, binary.BigEndian, messagecode.JoinRoomRequestIdentifier)
+    binary.Write(&buf, binary.BigEndian, m.header)
     binary.Write(&buf, binary.BigEndian, m.senderId)
     binary.Write(&buf, binary.BigEndian, m.roomId)
 
@@ -43,6 +46,7 @@ func (m *JoinRoomRequest) Unmarshal(dataReceived []byte) *pe.ProtocolError{
                                     header,
                                     "JoinRoomRequest")
     }
+    m.header = header
 
     l := 0
     m.senderId = binary.BigEndian.Uint16(body[l:l+receiver_id_in_bytes])
@@ -51,4 +55,8 @@ func (m *JoinRoomRequest) Unmarshal(dataReceived []byte) *pe.ProtocolError{
     m.roomId = binary.BigEndian.Uint16(body[l:l+room_id_in_bytes])
 
     return nil
+}
+
+func (m *JoinRoomRequest) GetHeader() uint8{
+    return m.header
 }

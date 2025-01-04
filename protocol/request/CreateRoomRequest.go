@@ -12,6 +12,7 @@ import (
 
 type CreateRoomRequest struct{
     senderId uint16 
+    header uint8
     roomName string
 }
 
@@ -21,7 +22,9 @@ func NewCreateRoomRequest(senderId uint16, roomName string) (*CreateRoomRequest,
     if len(roomName) > max_text_in_bytes{
         return nil, pe.InvalidMessageLengthError("Room Name is to long")
     }
-    return &CreateRoomRequest{senderId: senderId, roomName: roomName}, nil
+    return &CreateRoomRequest{senderId: senderId,
+                              header: messagecode.CreateRoomRequestIdentifier,
+                              roomName: roomName}, nil
 
 }
 
@@ -37,8 +40,7 @@ func (m *CreateRoomRequest) Marshal()([]byte, *pe.ProtocolError){
 
     var buf bytes.Buffer
     
-    binary.Write(&buf, binary.BigEndian, 
-                 uint8(messagecode.CreateRoomRequestIdentifier))
+    binary.Write(&buf, binary.BigEndian, m.header)
     binary.Write(&buf, binary.BigEndian, m.senderId)
     binary.Write(&buf, binary.BigEndian, uint8(roomLen))
     binary.Write(&buf, binary.BigEndian, m.roomName)
@@ -48,12 +50,19 @@ func (m *CreateRoomRequest) Marshal()([]byte, *pe.ProtocolError){
 
 func (m *CreateRoomRequest)Unmarshal(data []byte) *pe.ProtocolError{
     header := data[0] 
+    body := data[1:]
+
+    err := p.CheckForValidHeader(header, body) 
+    if err != nil{
+        return err
+    }
     if header != messagecode.CreateRoomRequestIdentifier{
         return p.InvalidHeaderError(messagecode.CreateRoomRequestIdentifier,
                                     header,
                                     "CreateRoomRequest")    
     }
-    
+
+    m.header = header
     l := 0
     sender := binary.BigEndian.Uint16(data[l:(l+sender_id_in_bytes)])
     l+=sender_id_in_bytes
@@ -66,4 +75,8 @@ func (m *CreateRoomRequest)Unmarshal(data []byte) *pe.ProtocolError{
     m.roomName= roomName
 
     return nil
+}
+
+func (m *CreateRoomRequest) GetHeader() uint8{
+    return m.header
 }

@@ -14,6 +14,7 @@ type SendMessageRequest struct{
     sender uint16 
     receiver uint16
     message string
+    header uint8
 }
 
 func NewSendMessageRequest(senderId uint16, 
@@ -25,7 +26,10 @@ func NewSendMessageRequest(senderId uint16,
         return nil, pe.InvalidMessageLengthError("Invalid Message length")
 
     }
-    return &SendMessageRequest{senderId, receiverId, message}, nil
+    return &SendMessageRequest{senderId, 
+                               receiverId, 
+                               message, 
+                               messagecode.SendMessageRequestIdentifier}, nil
 
 }
 
@@ -37,7 +41,7 @@ func (m *SendMessageRequest) Marshal()([]byte, *pe.ProtocolError){
         return nil, 
         pe.InvalidMessageLengthError("Message sent is longer than 255 bytes")
     }
-    binary.Write(&buf, binary.BigEndian, messagecode.SendMessageRequestIdentifier)
+    binary.Write(&buf, binary.BigEndian, m.header)
     binary.Write(&buf, binary.BigEndian, m.sender)
     binary.Write(&buf, binary.BigEndian, m.receiver)
     binary.Write(&buf, binary.BigEndian, uint8(msgLength))
@@ -61,6 +65,7 @@ func (m *SendMessageRequest) Unmarshal(dataReceived []byte) *pe.ProtocolError{
                                   "SendMessageRequest")
     }
 
+    m.header = header
     l := 0
     sender := binary.BigEndian.Uint16(body[l:(l+sender_id_in_bytes)])
     l+=sender_id_in_bytes
@@ -77,5 +82,9 @@ func (m *SendMessageRequest) Unmarshal(dataReceived []byte) *pe.ProtocolError{
     m.message = msg
 
     return nil
+}
+
+func (m *SendMessageRequest) GetHeader() uint8{
+    return m.header
 }
 

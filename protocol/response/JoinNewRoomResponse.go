@@ -10,6 +10,7 @@ import (
 )
 
 type JoinRoomResponse struct{
+    header uint8
     status uint8
 }
 
@@ -17,7 +18,7 @@ func (m *JoinRoomResponse) Marshal() ([]byte, *pe.ProtocolError){
 
     var buf bytes.Buffer
 
-    binary.Write(&buf, binary.BigEndian, messagecode.JoinRoomResponseIdentifier)
+    binary.Write(&buf, binary.BigEndian, m.header)
     binary.Write(&buf, binary.BigEndian, m.status)
     return buf.Bytes(), nil
 }
@@ -37,8 +38,12 @@ func (m *JoinRoomResponse) Unmarshal(dataReceived []byte) *pe.ProtocolError{
                                     head,
                                     "JoinRoomResponse")
     }
-
+    m.header = head
     m.status = body[1]
     return nil
+}
+
+func (m *JoinRoomResponse) GetHeader() uint8{
+    return m.header
 }
 

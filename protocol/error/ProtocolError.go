@@ -9,8 +9,9 @@ import (
 
 
 type ProtocolError struct{
-    errorCode uint8
+
     message string
+    errorCode uint8
 }
 
 func (e *ProtocolError) ErrorCode() int{
@@ -52,5 +53,9 @@ func (e *ProtocolError) Unmarshal(dataReceived []byte) *ProtocolError{
     return nil
 
 }
+
+func (e *ProtocolError) GetHeader() uint8{
+    return messagecode.IsErrorMessage
+} 
 
 

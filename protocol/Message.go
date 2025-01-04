@@ -9,12 +9,15 @@ import (
 	"github.com/rhythm/chatservice/protocol/response"
 )
 
+// These are the messages that is passed between server and client
 type Message interface{
     Marshal()([]byte, *pe.ProtocolError)
     Unmarshal(dataReceived []byte) *pe.ProtocolError
+    GetHeader() uint8
 }
 
-func Unmarshal(data []byte) (Message, error){
+// Given bytes of data we return the message if the data is valid
+func Unmarshal(data []byte) (Message, *pe.ProtocolError){
     header := data[0] 
 
     switch header{
@@ -54,8 +57,10 @@ func Unmarshal(data []byte) (Message, error){
             var obj pe.ProtocolError
             err := obj.Unmarshal(data[1:])
             return &obj, err
+
         default:
-            return nil, fmt.Errorf("Not a valid header: %d", header)
+            msg := fmt.Sprintf("%d is an invalid header", header)
+            return nil, pe.InvalidMessageHeaderError(msg)
     }
 }
 
