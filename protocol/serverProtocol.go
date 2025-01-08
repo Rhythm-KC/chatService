@@ -10,7 +10,7 @@ import (
 
 type ServerConnection struct{
     client net.Conn
-    connectionBuffer []byte
+    readBuffer []byte
 }
 
 
@@ -31,17 +31,22 @@ func (conn *ServerConnection) Listen(timeout uint) (Message, *pe.ProtocolError){
                                 Now().
                                 Add(time.Duration(timeout) * time.Second)) 
 
-    n, err := conn.client.Read(conn.connectionBuffer)
-    if err != nil{
+    n, err := conn.client.Read(conn.readBuffer)
+    if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
         return nil, pe.TimedOutError("Reading from the server timedout")
     }
 
-    er := protocol.CheckForValidHeader(conn.connectionBuffer[0], 
-                                       conn.connectionBuffer[1:])
+    if err.Error() == "EOF"{
+        return nil, pe.DisconectedError("Connection Lost")
+    }
+
+
+    er := protocol.CheckForValidHeader(conn.readBuffer[0], 
+                                       conn.readBuffer[1:])
     if er != nil{
         return nil, er
     }
-    return Unmarshal(conn.connectionBuffer[:n])
+    return Unmarshal(conn.readBuffer[:n])
 
 }
 

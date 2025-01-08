@@ -84,7 +84,16 @@ func (m *SendMessageRequest) Unmarshal(dataReceived []byte) *pe.ProtocolError{
     return nil
 }
 
+func (m *SendMessageRequest) SenderId() uint16{
+    return m.sender
+}
+func (m *SendMessageRequest) ReceiverId() uint16{
+    return m.receiver
+}
+func (m *SendMessageRequest) Message() string{
+    return m.message
+}
+
 func (m *SendMessageRequest) GetHeader() uint8{
     return m.header
 }
-

@@ -9,6 +9,7 @@ const(
     RESOURCE_NOT_FOUND uint8 = 120
     INVALID_HEADER uint8 = 130
     TIMED_OUT uint8 = 140
+    DISCONNECTED uint8 = 150
 
 
     //
@@ -32,6 +33,8 @@ func New(errorCode int, errMsg string) *ProtocolError{
         return InvalidMessageHeaderError(errMsg)
     case TIMED_OUT:
         return TimedOutError(errMsg)
+    case DISCONNECTED:
+        return TimedOutError(errMsg)
     default:
         panic(fmt.Sprintf("%d is not a defined error code", errorCode))
     }
@@ -42,7 +45,8 @@ func IsErrorCode(code uint8) bool {
        NULL_ERROR               == code || 
        RESOURCE_NOT_FOUND       == code ||
        INVALID_HEADER           == code ||
-       TIMED_OUT                == code {
+       TIMED_OUT                == code ||
+       DISCONNECTED             == code {
            return true
        }
     return false
@@ -56,29 +60,34 @@ func validateMessageValid(msg string) {
 func NullError(errMsg string)*ProtocolError{
     
     validateMessageValid(errMsg)
-    return &ProtocolError{NULL_ERROR, errMsg}
+    return &ProtocolError{errorCode: NULL_ERROR, message: errMsg}
 }
 
 func InvalidMessageLengthError(errMsg string) *ProtocolError{
 
     validateMessageValid(errMsg)
-    return &ProtocolError{INVALID_MESSAGE_LENGTH, errMsg}
+    return &ProtocolError{errorCode: INVALID_MESSAGE_LENGTH, message: errMsg}
 }
 
 func NotFoundError(errMsg string) *ProtocolError{
 
     validateMessageValid(errMsg)
-    return &ProtocolError{RESOURCE_NOT_FOUND, errMsg}
+    return &ProtocolError{errorCode: RESOURCE_NOT_FOUND, message: errMsg}
 }
 
 func InvalidMessageHeaderError(errMsg string) *ProtocolError{
 
     validateMessageValid(errMsg)
-    return &ProtocolError{INVALID_HEADER, errMsg}
+    return &ProtocolError{errorCode: INVALID_HEADER, message: errMsg}
 }
 
 func TimedOutError(errMsg string) *ProtocolError{
 
     validateMessageValid(errMsg)
-    return &ProtocolError{TIMED_OUT, errMsg}
+    return &ProtocolError{errorCode: TIMED_OUT, message: errMsg}
+}
+func DisconectedError(errMsg string) *ProtocolError{
+
+    validateMessageValid(errMsg)
+    return &ProtocolError{errorCode: DISCONNECTED, message: errMsg}
 }

@@ -56,7 +56,7 @@ func (rm *roomManager) waitForUserToJoin(user *User){
 
                 roomReq := req.(*request.CreateRoomRequest)
                 newRoom := rm.createRoom(roomReq.RoomName)
-                newRoom.AddUser(user)
+                newRoom.Subscribe(user)
                 rm.mu.Lock()
                 rm.Rooms[newRoom.ID] = newRoom
                 rm.mu.Unlock()
@@ -71,7 +71,7 @@ func (rm *roomManager) waitForUserToJoin(user *User){
                 room, found := rm.Rooms[roomReq.RoomId]
                 var roomResp protocol.Message
                 if found{
-                    room.AddUser(user)
+                    room.Subscribe(user)
                     roomResp = response.NewJoinRoomResponse(room.ID,
                                                              room.RoomName)
                 }else{
