@@ -3,9 +3,9 @@ package server
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	p "github.com/rhythm/chatservice/protocol"
+	pe "github.com/rhythm/chatservice/protocol/error"
 	"github.com/rhythm/chatservice/protocol/messagecode"
 	"github.com/rhythm/chatservice/protocol/request"
 	"github.com/rhythm/chatservice/protocol/response"
@@ -40,63 +40,72 @@ func (cm *connectionManager) Start() error{
         return fmt.Errorf("connection manager already exists")
     }
     singleInstance = cm
-    go cm.run()
+    cm.run()
     return nil
+}
+func (cm *connectionManager) async(f func()){
+    cm.wg.Add(1)
+    go func() {
+        defer cm.wg.Done()
+        f()
+    }()
+}
+
+func (cm *connectionManager) run(){
+
+    for{
+        select{
+        case newConn := <- cm.newConnection:
+            cm.async(func(){cm.waitForUserRegistration(newConn)})
+        case <- cm.done:
+            return
+        }
+    }
+}
+
+func (cm *connectionManager) waitForUserRegistration(conn *p.ServerConnection){
+    for {
+        select{
+        case <- cm.done:
+            return
+        default:
+            msg, err := conn.Listen(10) 
+            if err != nil && err.ErrorCode() == int(pe.TIMED_OUT){
+               continue 
+            }
+            if err != nil && err.ErrorCode() == int(pe.DISCONNECTED){
+                conn.Close()
+                return
+            }
+            if err != nil{
+                conn.SendResponse(err)
+            }
+            
+            if msg.GetHeader() == messagecode.CreateUserRequestIdentifier{
+                req, _:= msg.(*request.CreateUserRequest)
+                user := NewUser(req.Name(), conn)
+                Resp := response.NewCreateUserResponse(user.Userid)
+                conn.SendResponse(Resp)
+
+                cm.mu.Lock()
+                cm.roomManager.Register <- user
+                cm.mu.Unlock()
+                return 
+            }else{
+                conn.SendResponse(pe.InvalidMessageHeaderError("User has not been registered"))
+
+            }
+
+        }
+    }
+}
+
+func (cm *connectionManager) Submit(newConn *p.ServerConnection){
+    cm.newConnection <- newConn
 }
 
 func (cm *connectionManager) Close(){
     close(cm.done)
-}
-
-func (cm *connectionManager) setClosing(val int32){
-    atomic.StoreInt32(&cm.closing, val)
-}
-
-func  (cm *connectionManager) isClosing()bool{
-    return atomic.LoadInt32(&cm.closing) == 1
-}
-
-func (cm *connectionManager) waitForUserRegistration(conn *p.ServerConnection){
-    defer cm.wg.Done()
-    for {
-        msg, err := conn.Listen(10) 
-        if err != nil{
-            // deal with inactive user
-           continue 
-        }
-        if cm.isClosing(){
-            // need to send user a response saying that the server shut down
-            return
-        }
-        
-        if msg.GetHeader() == messagecode.CreateUserRequestIdentifier{
-            req, _:= msg.(*request.CreateUserRequest)
-            user := NewUser(req.Name(), conn)
-            Resp := response.NewCreateUserResponse(user.userid)
-            conn.SendResponse(Resp)
-
-            cm.mu.Lock()
-            cm.roomManager.Register <- user
-            cm.mu.Unlock()
-
-            return 
-        }
-    }
-}
-
-
-func (cm *connectionManager) run(){
-
-    defer cm.wg.Wait()
-    for{
-        select{
-        case newConn := <- cm.newConnection:
-            cm.wg.Add(1)
-            go cm.waitForUserRegistration(newConn)
-        case <- cm.done:
-            cm.setClosing(closingFalse)
-            return
-        }
-    }
+    cm.wg.Wait()
 }
 

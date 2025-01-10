@@ -1,54 +1,51 @@
 package server
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/rhythm/chatservice/protocol"
 	pe "github.com/rhythm/chatservice/protocol/error"
 	"github.com/rhythm/chatservice/protocol/messagecode"
 	"github.com/rhythm/chatservice/protocol/request"
+	"github.com/rhythm/chatservice/thread"
 )
 
 type Room struct{
-    ID uint16
-    users map[uint16]*User
-    MessageQueue chan protocol.Message
-    userChannel  chan *User
-    done       chan struct{}
-    RoomName string
-    wg       sync.WaitGroup
-    mu       sync.Mutex
+    ID               uint16
+    users            sync.Map
+    broadcastPool    thread.ThreadPool
+    MessageQueue     chan protocol.Message
+    userChannel      chan *User
+    done             chan struct{}
+    RoomName         string
+    wg               sync.WaitGroup
 }
 
 func NewRoom(roomID uint16, roomName string)*Room{
-   return &Room{ID: roomID, RoomName: roomName} 
+   return &Room{ID: roomID, 
+                RoomName: roomName, 
+                broadcastPool: *thread.NewThreadPool(10)} 
 }
 
-func generateRoomId(existingRoom map[uint16]*Room) uint16{
-    var i uint16 = 0
-    for {
-        if _, exists := existingRoom[i]; !exists{
-            return i
-        }
-        i++
-    }
+
+// Starts lisiting to the users and processing user mesages
+func (r *Room) Start(){
+    r.async(func() {r.brodcast()})
+    r.run()
 }
 
 func (r *Room) Subscribe(user *User){
-    r.mu.Lock()
     r.userChannel <- user
-    r.mu.Lock()
 }
 
 func (r *Room)removeUser(userId uint16){
-
-    r.mu.Lock()
-    defer r.mu.Unlock()
-    delete(r.users, userId)
+    user, _:= r.users.Load(userId)
+    usr, _ := user.(*User) 
+    usr.Delete()
+    r.users.Delete(userId)
 }
 
-func (r *Room) asyncListen(function func()){
+func (r *Room) async(function func()){
     r.wg.Add(1)
     go func() {
         defer r.wg.Done()
@@ -62,15 +59,12 @@ func (r *Room) listen(usr *User){
     for {
         select{
             case <- r.done:
-                //close connection
-                usr.conn.Close()
                 r.removeUser(usr.Userid)
                 return
 
             default:
                 message, err := usr.conn.Listen(10)
                 if err.ErrorCode() == int(pe.DISCONNECTED){
-                    usr.conn.Close()
                     r.removeUser(usr.Userid)
                     return
                 }
@@ -78,20 +72,23 @@ func (r *Room) listen(usr *User){
                     continue
                 }
                 r.MessageQueue <- message
-
         }
     }
 
 }
 
 func (r *Room) pushMessageToAll(message *request.SendMessageRequest){
-    for userId, usr := range r.users{
-        if userId == message.SenderId(){
-            continue
-        }
-        usr.conn.SendResponse(message)
+    r.users.Range(func(key, value interface{}) bool {
+        userID := key.(uint16)  
+        user := value.(*User)  
 
-    }
+        if userID != message.SenderId() {
+            user.conn.SendResponse(message)
+        }
+        return true 
+    })
+
+
 }
 
 func (r *Room) handleMessage(message protocol.Message){
@@ -99,6 +96,7 @@ func (r *Room) handleMessage(message protocol.Message){
     if header == messagecode.SendMessageRequestIdentifier{
         reqmessage, _ := message.(*request.SendMessageRequest)
         r.pushMessageToAll(reqmessage)
+        
 
     }
 }
@@ -109,28 +107,20 @@ func (r *Room) brodcast(){
             case <- r.done:
                 return
             case message := <- r.MessageQueue:
-                r.handleMessage(message)
-
-
+                r.broadcastPool.Submit(func (){r.handleMessage(message)})
         }
-
-
-
     }
     
 }
 
-func(r *Room) Run(){
+func(r *Room) run(){
    for {
        select{
             case <-r.done:
                 return
             case user := <- r.userChannel:
-                r.users[user.Userid] = user
-                r.asyncListen(func() {r.listen(user)})
-
-            default:
-                fmt.Printf("DOING THINGS")
+                r.users.Store(user.Userid, user)
+                r.async(func() {r.listen(user)})
             
        }
    }
@@ -139,8 +129,6 @@ func(r *Room) Run(){
 
 func (r *Room) Close(){
     close(r.done)
+    r.broadcastPool.Shutdown()
     r.wg.Wait()
 }
-
-
-
