@@ -146,6 +146,17 @@ func (rm *roomManager) generateRoomId() uint16{
 
 func (rm *roomManager) Stop(){
     close(rm.done)
+    close(rm.Register)
+    rm.closeRooms()
     rm.wg.Wait()
 }
+
+func (rm *roomManager) closeRooms(){
+    for id, room := range rm.rooms{
+        room.Close()
+        delete(rm.rooms, id)
+    }
+}
+
+
 

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"sync"
 
 	p "github.com/rhythm/chatservice/protocol"
@@ -26,7 +25,6 @@ type connectionManager struct{
 
 }
 
-var singleInstance *connectionManager
 
 func NewConnectionManger(roomManager *roomManager) *connectionManager{
     return &connectionManager{newConnection: make(chan *p.ServerConnection,10),
@@ -36,10 +34,6 @@ func NewConnectionManger(roomManager *roomManager) *connectionManager{
 }
 
 func (cm *connectionManager) Start() error{
-    if singleInstance != nil{
-        return fmt.Errorf("connection manager already exists")
-    }
-    singleInstance = cm
     cm.run()
     return nil
 }
