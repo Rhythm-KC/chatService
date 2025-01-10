@@ -9,7 +9,6 @@ type ThreadPool struct{
     tasks       chan Task
     wg          sync.WaitGroup
     done        chan struct{}
-    muTasks     sync.Mutex
 }
 
 // Create a New thread pool with workes to take submitted task.
@@ -39,10 +38,8 @@ func (tp *ThreadPool) worker(){
 // Submit a task. A task is a lambda function
 // This will be blocking if  there are no workers avaiable 
 func (p *ThreadPool) Submit(task Task) {
-    p.muTasks.Lock()
 	p.wg.Add(1)
 	p.tasks <- task
-    p.muTasks.Unlock()
 }
 
 // Wait for workes to complete their work. This is a blocking code
