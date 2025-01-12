@@ -4,9 +4,9 @@ import (
 	"net"
 	"time"
 
-	pe "github.com/rhythm/chatservice/protocol/error"
-	"github.com/rhythm/chatservice/protocol/request"
-	"github.com/rhythm/chatservice/protocol/response"
+	pe "github.com/rhythm/chatservice/pkg/protocol/error"
+	"github.com/rhythm/chatservice/pkg/protocol/request"
+	"github.com/rhythm/chatservice/pkg/protocol/response"
 )
 
 

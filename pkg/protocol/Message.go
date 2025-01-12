@@ -3,10 +3,10 @@ package protocol
 import (
 	"fmt"
 
-	pe "github.com/rhythm/chatservice/protocol/error"
-	"github.com/rhythm/chatservice/protocol/messagecode"
-	"github.com/rhythm/chatservice/protocol/request"
-	"github.com/rhythm/chatservice/protocol/response"
+	pe "github.com/rhythm/chatservice/pkg/protocol/error"
+	"github.com/rhythm/chatservice/pkg/protocol/messagecode"
+	"github.com/rhythm/chatservice/pkg/protocol/request"
+	"github.com/rhythm/chatservice/pkg/protocol/response"
 )
 
 // These are the messages that is passed between server and client

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 
-	p "github.com/rhythm/chatservice/protocol/util"
-	pe "github.com/rhythm/chatservice/protocol/error"
-	"github.com/rhythm/chatservice/protocol/messagecode"
+	p "github.com/rhythm/chatservice/pkg/protocol/util"
+	pe "github.com/rhythm/chatservice/pkg/protocol/error"
+	"github.com/rhythm/chatservice/pkg/protocol/messagecode"
 )
 
 

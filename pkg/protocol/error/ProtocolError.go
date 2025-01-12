@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/rhythm/chatservice/protocol/messagecode"
+	"github.com/rhythm/chatservice/pkg/protocol/messagecode"
 )
 
 

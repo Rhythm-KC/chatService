@@ -4,27 +4,45 @@ import (
 	"net"
 	"time"
 
-	pe "github.com/rhythm/chatservice/protocol/error"
-	protocol "github.com/rhythm/chatservice/protocol/util"
+	pe "github.com/rhythm/chatservice/pkg/protocol/error"
+	protocol "github.com/rhythm/chatservice/pkg/protocol/util"
 )
 
-type ServerConnection struct{
+type Connection struct{
     client net.Conn
     readBuffer []byte
 }
 
+var listner net.Listener
 
-func NewServerConnection(conn *net.Conn) *ServerConnection{
+func NewConnection(conn *net.Conn) *Connection{
 
-    return &ServerConnection{*conn, make([]byte, 1024)}
+    return &Connection{*conn, make([]byte, 1024)}
 
 }
 
-func (conn *ServerConnection)Close(){
+func Listen(address string)(*Connection, error){
+    if listner == nil{
+        listner, _ = net.Listen("tcp", address)
+    }
+    conn, err := listner.Accept()
+    if err != nil{
+        return nil, err
+    }
+    return NewConnection(&conn), nil
+
+}
+func Close(){
+    if listner != nil{
+        listner.Close()
+    }
+}
+
+func (conn *Connection)Close(){
     conn.client.Close()
 }
 
-func (conn *ServerConnection) Listen(timeout uint) (Message, *pe.ProtocolError){
+func (conn *Connection) Listen(timeout uint) (Message, *pe.ProtocolError){
 
 
     conn.client.SetReadDeadline(time.
@@ -50,11 +68,8 @@ func (conn *ServerConnection) Listen(timeout uint) (Message, *pe.ProtocolError){
 
 }
 
-func (conn *ServerConnection) SendResponse(msg Message){
+func (conn *Connection) SendResponse(msg Message){
     data, _:= msg.Marshal()
     conn.client.Write(data)
 }
-
-
-
 

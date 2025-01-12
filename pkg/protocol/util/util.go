@@ -3,7 +3,7 @@ package protocol
 import (
 	"fmt"
 
-	pe "github.com/rhythm/chatservice/protocol/error"
+	pe "github.com/rhythm/chatservice/pkg/protocol/error"
 )
 
 func InvalidHeaderError(expectedHeader uint8, 
